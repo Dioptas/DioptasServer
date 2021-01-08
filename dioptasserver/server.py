@@ -2,7 +2,7 @@ import os
 from functools import partial
 
 from flask import Flask, request
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, join_room
 
 from dioptas.model.DioptasModel import DioptasModel
 import time
@@ -11,10 +11,9 @@ from .util import convert_array_to_bytes
 
 from qtpy import QtCore
 
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-sio = SocketIO(app, cors_allowed_origins="*", binary=True)
+sio = SocketIO(app, cors_allowed_origins="*", always_connect=True, engineio_logger=True)
 
 path = os.path.dirname(__file__)
 data_path = os.path.join(path, '../data')
@@ -59,6 +58,7 @@ def get_session(sid, lock=True):
 @sio.on('connect')
 def connect():
     sessions[request.sid] = {}
+    # join_room('/' + request.sid)
     print(request.sid, 'connected!')
     return request.sid
 
@@ -75,8 +75,8 @@ def init_model():
         print('init model')
         model = DioptasModel()
         # setting up signals:
-        model.img_changed.connect(partial(img_changed, request.sid))
-        model.pattern_changed.connect(partial(pattern_changed, request.sid))
+        # model.img_changed.connect(partial(img_changed, request.sid))
+        # model.pattern_changed.connect(partial(pattern_changed, request.sid))
         model.img_model.filename = 'Wurstbrot'
         session['model'] = model
 
@@ -90,7 +90,6 @@ def img_changed(sid):
     session = sessions[sid]
     model = session['model']  # type: DioptasModel
     sio.emit('img_changed', convert_array_to_bytes(model.img_model.img_data))
-    # namespace='/' + sid)
 
 
 def pattern_changed(sid):
@@ -108,12 +107,10 @@ def load_dummy():
     with get_session(request.sid) as session:
         print('load dummy')
         model = session['model']
-        model.img_changed.connect(partial(img_changed, request.sid))
-        model.pattern_changed.connect(partial(pattern_changed, request.sid))
         print(model.img_model.filename)
-        model.load(os.path.join(data_path, 'dummy.dio'))
-        # img_changed(request.sid)
-        model.img_changed.emit()
+        model.load(os.path.join(data_path, 'dummy2.dio'))
+        img_changed(request.sid)
+        return sio.emit('img_changed', model.img_model.img_data.tobytes())
 
 
 def run_server(port):
@@ -133,5 +130,4 @@ class DioptasServer(object):
 
 
 def start_server(port):
-    dioptas_server = DioptasServer()
-    dioptas_server.start(port)
+    sio.run(app, port=port)
