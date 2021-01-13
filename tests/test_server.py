@@ -12,8 +12,6 @@ class ServerTests(unittest.TestCase):
     def setUp(self):
         self.client = sio.test_client(app)
         self.sid = list(sessions.keys())[0]
-        self.namespace = '/' + self.sid
-        self.client.connect(self.namespace)
 
     def test_init_model(self):
         self.client.emit('init_model')
@@ -26,6 +24,6 @@ class ServerTests(unittest.TestCase):
         model = sessions[list(sessions.keys())[0]]['model']
         self.assertEqual(model.img_model.filename, 'D:/Programming/Dioptas/dioptas/tests/data/CeO2_Pilatus1M.tif')
         self.assertEqual(model.img_model.img_data.shape, (1043, 981))
-        received_events = [event['name'] for event in self.client.get_received(self.namespace)]
+        received_events = [event['name'] for event in self.client.get_received()]
         self.assertIn('img_changed', received_events)
         self.assertIn('pattern_changed', received_events)
