@@ -108,10 +108,10 @@ def img_changed(sid):
 def pattern_changed(sid):
     session = sessions[sid]
     model = session['model']  # type: DioptasModel
-    # sio.emit('pattern_changed',
-    #          (model.pattern_model.pattern_filename,
-    #           model.pattern_model.pattern.x,
-    #           model.pattern_model.pattern.y))
+    sio.emit('pattern_changed',
+             {'filename': model.pattern_model.pattern_filename,
+              'x': model.pattern_model.pattern.x.tolist(),
+              'y': model.pattern_model.pattern.y.tolist()})
 
 
 @sio.on('load_dummy')
@@ -119,6 +119,15 @@ def load_dummy():
     with get_session(request.sid) as session:
         model = session['model']
         model.load(os.path.join(data_path, 'dummy.dio'))
+        img_changed(request.sid)
+        pattern_changed(request.sid)
+
+
+@sio.on('load_dummy2')
+def load_dummy2():
+    with get_session(request.sid) as session:
+        model = session['model']
+        model.load(os.path.join(data_path, 'dummy2.dio'))
         img_changed(request.sid)
         pattern_changed(request.sid)
 
