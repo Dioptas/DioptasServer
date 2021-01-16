@@ -118,7 +118,7 @@ def pattern_changed(sid):
 def load_dummy():
     with get_session(request.sid) as session:
         model = session['model']
-        model.load(os.path.join(data_path, 'dummy.dio'))
+        model.load(os.path.join(data_path, 'projects', 'dummy.dio'))
         img_changed(request.sid)
         pattern_changed(request.sid)
 
@@ -127,9 +127,22 @@ def load_dummy():
 def load_dummy2():
     with get_session(request.sid) as session:
         model = session['model']
-        model.load(os.path.join(data_path, 'dummy2.dio'))
+        model.load(os.path.join(data_path, 'projects', 'dummy2.dio'))
         img_changed(request.sid)
         pattern_changed(request.sid)
+
+
+@sio.on('list_dir')
+def list_dir(base_directory):
+    item_list = os.listdir(base_directory)
+    folders = []
+    files = []
+    for item in item_list:
+        if os.path.isdir(os.path.join(base_directory, item)):
+            folders.append(item)
+        else:
+            files.append(item)
+    return {'folders': folders, 'files': files}
 
 
 def run_server(port):

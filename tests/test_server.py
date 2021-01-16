@@ -27,3 +27,19 @@ class ServerTests(unittest.TestCase):
         received_events = [event['name'] for event in self.client.get_received()]
         self.assertIn('img_changed', received_events)
         self.assertIn('pattern_changed', received_events)
+
+    def test_listdir(self):
+        result = self.client.emit('list_dir', '../data', callback=True)
+        self.assertIn('images', result['folders'])
+        self.assertIn('projects', result['folders'])
+
+        result = self.client.emit('list_dir', '../data/projects', callback=True)
+        self.assertIn('dummy.dio', result['files'])
+        self.assertIn('dummy2.dio', result['files'])
+
+        result = self.client.emit('list_dir', '../data/images', callback=True)
+        self.assertIn('image_001.tif', result['files'])
+        self.assertIn('image_002.tif', result['files'])
+
+
+
