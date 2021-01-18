@@ -134,15 +134,18 @@ def load_dummy2():
 
 @sio.on('list_dir')
 def list_dir(base_directory):
-    item_list = os.listdir(base_directory)
-    folders = []
-    files = []
-    for item in item_list:
-        if os.path.isdir(os.path.join(base_directory, item)):
-            folders.append(item)
-        else:
-            files.append(item)
-    return {'folders': folders, 'files': files}
+    try:
+        item_list = os.listdir(base_directory)
+        folders = []
+        files = []
+        for item in item_list:
+            if os.path.isdir(os.path.join(base_directory, item)):
+                folders.append(item)
+            else:
+                files.append(item)
+        return {'folders': folders, 'files': files}
+    except FileNotFoundError:
+        return None
 
 
 def run_server(port):

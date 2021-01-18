@@ -41,5 +41,4 @@ class ServerTests(unittest.TestCase):
         self.assertIn('image_001.tif', result['files'])
         self.assertIn('image_002.tif', result['files'])
 
-
-
+        result = self.client.emit('list_dir', 'blub', callback=True)
