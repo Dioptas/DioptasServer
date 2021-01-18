@@ -117,7 +117,7 @@ def pattern_changed(sid):
 @sio.on('load_dummy')
 def load_dummy():
     with get_session(request.sid) as session:
-        model = session['model']
+        model = session['model']  # type: DioptasModel
         model.load(os.path.join(data_path, 'projects', 'dummy.dio'))
         img_changed(request.sid)
         pattern_changed(request.sid)
@@ -126,8 +126,17 @@ def load_dummy():
 @sio.on('load_dummy2')
 def load_dummy2():
     with get_session(request.sid) as session:
-        model = session['model']
+        model = session['model']  # type: DioptasModel
         model.load(os.path.join(data_path, 'projects', 'dummy2.dio'))
+        img_changed(request.sid)
+        pattern_changed(request.sid)
+
+
+@sio.on('load_image')
+def load_image(filename):
+    with get_session(request.sid) as session:
+        model = session['model']  # type: DioptasModel
+        model.img_model.load(filename)
         img_changed(request.sid)
         pattern_changed(request.sid)
 

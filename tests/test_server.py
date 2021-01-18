@@ -28,6 +28,12 @@ class ServerTests(unittest.TestCase):
         self.assertIn('img_changed', received_events)
         self.assertIn('pattern_changed', received_events)
 
+    def test_load_image(self):
+        self.client.emit('init_model')
+        self.client.emit('load_image', '../data/images/image_001.tif')
+        model = sessions[list(sessions.keys())[0]]['model']
+        self.assertIn('image_001.tif', model.img_model.filename)
+
     def test_listdir(self):
         result = self.client.emit('list_dir', '../data', callback=True)
         self.assertIn('images', result['folders'])
