@@ -34,6 +34,16 @@ class ServerTests(unittest.TestCase):
         model = sessions[list(sessions.keys())[0]]['model']
         self.assertIn('image_001.tif', model.img_model.filename)
 
+    def test_load_next_and_previous_image(self):
+        self.client.emit('init_model')
+        model = sessions[list(sessions.keys())[0]]['model']
+        self.client.emit('load_image', '../data/images/image_001.tif')
+        self.assertIn('image_001.tif', model.img_model.filename)
+        self.client.emit('load_next_image')
+        self.assertIn('image_002.tif', model.img_model.filename)
+        self.client.emit('load_previous_image')
+        self.assertIn('image_001.tif', model.img_model.filename)
+
     def test_listdir(self):
         result = self.client.emit('list_dir', '../data', callback=True)
         self.assertIn('images', result['folders'])

@@ -1,6 +1,5 @@
 import os
 import threading
-from functools import partial
 
 from flask import Flask, request
 from flask_socketio import SocketIO
@@ -8,7 +7,6 @@ from flask_socketio import SocketIO
 from dioptas.model.DioptasModel import DioptasModel
 import time
 
-from .util import convert_array_to_bytes
 from .image_server import run_image_server
 
 app = Flask(__name__)
@@ -100,7 +98,7 @@ def img_changed(sid):
     session = sessions[sid]
     model = session['model']  # type: DioptasModel
     sio.emit('img_changed', {
-        'filename': model.img_model.filename,
+        'filename': os.path.relpath(model.img_model.filename, os.getcwd()).replace('\\', '/'),
         'serverPort': session['server_port']
     }, broadcast=True)
 
@@ -137,6 +135,24 @@ def load_image(filename):
     with get_session(request.sid) as session:
         model = session['model']  # type: DioptasModel
         model.img_model.load(filename)
+        img_changed(request.sid)
+        pattern_changed(request.sid)
+
+
+@sio.on('load_next_image')
+def load_next_image():
+    with get_session(request.sid) as session:
+        model = session['model']  # type: DioptasModel
+        model.img_model.load_next_file()
+        img_changed(request.sid)
+        pattern_changed(request.sid)
+
+
+@sio.on('load_previous_image')
+def load_next_image():
+    with get_session(request.sid) as session:
+        model = session['model']  # type: DioptasModel
+        model.img_model.load_previous_file()
         img_changed(request.sid)
         pattern_changed(request.sid)
 
