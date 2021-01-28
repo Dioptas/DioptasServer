@@ -61,8 +61,9 @@ class ServerTests(unittest.TestCase):
 
     def test_get_image_angles(self):
         self.client.emit('init_model')
-        result = self.client.emit('get_image_angles', 100, 45, callback=True)
+        result = self.client.emit('get_image_angles', 45, 100, callback=True)
         self.assertNotEqual(result, [])
         self.assertAlmostEqual(result['tth'], 0.4963, places=3)
         self.assertAlmostEqual(result['azi'], 65.7722, places=3)
+        self.assertAlmostEqual(result['d'], 38.6019, places=3)
         self.assertAlmostEqual(result['q'], 0.162768, places=3)
