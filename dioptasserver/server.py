@@ -180,21 +180,27 @@ def get_image_angles(x, y):
     session = sessions[request.sid]
     model = session['model']  # type: DioptasModel
     x, y = np.array([y]), np.array([x])  # have to be swapped for pyFAI
-    tth_rad = model.calibration_model.get_two_theta_img(x, y)
-    tth = np.rad2deg(tth_rad)
-    azi = np.rad2deg(model.calibration_model.get_azi_img(x, y))
-    q = 4 * np.pi * np.sin(tth / 360 * np.pi) / model.calibration_model.wavelength / 1e10
-    d = model.calibration_model.wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
-    return {'tth': tth, 'azi': azi, 'q': q, 'd': d}
+    if model.calibration_model.is_calibrated:
+        tth_rad = model.calibration_model.get_two_theta_img(x, y)
+        tth = np.rad2deg(tth_rad)
+        azi = np.rad2deg(model.calibration_model.get_azi_img(x, y))
+        q = 4 * np.pi * np.sin(tth / 360 * np.pi) / model.calibration_model.wavelength / 1e10
+        d = model.calibration_model.wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
+        return {'tth': tth, 'azi': azi, 'q': q, 'd': d}
+    else:
+        return {'tth': None, 'azi': None, 'q': None, 'd': None}
 
 
 @sio.on('get_pattern_angles')
 def get_pattern_angles(tth):
     session = sessions[request.sid]
     model = session['model']  # type: DioptasModel
-    q = 4 * np.pi * np.sin(tth / 360 * np.pi) / model.calibration_model.wavelength / 1e10
-    d = model.calibration_model.wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
-    return {'tth': tth, 'q': q, 'd': d}
+    if model.calibration_model.is_calibrated:
+        q = 4 * np.pi * np.sin(tth / 360 * np.pi) / model.calibration_model.wavelength / 1e10
+        d = model.calibration_model.wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
+        return {'tth': tth, 'q': q, 'd': d}
+    else:
+        return {'tth': None, 'q': None, 'd': None}
 
 
 def run_server(port):
