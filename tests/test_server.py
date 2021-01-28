@@ -67,3 +67,10 @@ class ServerTests(unittest.TestCase):
         self.assertAlmostEqual(result['azi'], 65.7722, places=3)
         self.assertAlmostEqual(result['d'], 38.6019, places=3)
         self.assertAlmostEqual(result['q'], 0.162768, places=3)
+
+    def test_get_pattern_angles(self):
+        self.client.emit('init_model')
+        result = self.client.emit('get_pattern_angles', 0.4963, callback=True)
+        self.assertNotEqual(result, [])
+        self.assertAlmostEqual(result['d'], 38.6052, places=3)
+        self.assertAlmostEqual(result['q'], 0.162768, places=3)

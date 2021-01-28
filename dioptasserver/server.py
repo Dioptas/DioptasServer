@@ -188,6 +188,15 @@ def get_image_angles(x, y):
     return {'tth': tth, 'azi': azi, 'q': q, 'd': d}
 
 
+@sio.on('get_pattern_angles')
+def get_pattern_angles(tth):
+    session = sessions[request.sid]
+    model = session['model']  # type: DioptasModel
+    q = 4 * np.pi * np.sin(tth / 360 * np.pi) / model.calibration_model.wavelength / 1e10
+    d = model.calibration_model.wavelength / (2 * np.sin(tth / 360 * np.pi)) * 1e10
+    return {'tth': tth, 'q': q, 'd': d}
+
+
 def run_server(port):
     print("starting socket io server")
     sio.run(app, port=port)
