@@ -74,3 +74,11 @@ class ServerTests(unittest.TestCase):
         self.assertNotEqual(result, [])
         self.assertAlmostEqual(result['d'], 38.6052, places=3)
         self.assertAlmostEqual(result['q'], 0.162768, places=3)
+
+    def test_get_azimuthal_ring(self):
+        self.client.emit('init_model')
+        self.client.emit('load_dummy')
+        result = self.client.emit('get_azimuthal_ring', 200, 300, callback=True)
+        self.assertNotEqual(result, [])
+        self.assertGreater(len(result['x']), 0)
+        self.assertGreater(len(result['y']), 0)

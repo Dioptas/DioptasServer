@@ -2,6 +2,7 @@ import os
 import threading
 
 import numpy as np
+from skimage.measure import find_contours
 
 from flask import Flask, request
 from flask_socketio import SocketIO
@@ -201,6 +202,25 @@ def get_pattern_angles(tth):
         return {'tth': tth, 'q': q, 'd': d}
     else:
         return {'tth': None, 'q': None, 'd': None}
+
+
+@sio.on('get_azimuthal_ring')
+def get_azimuthal_ring(x, y):
+    session = sessions[request.sid]
+    model = session['model']  # type: DioptasModel
+    if not model.calibration_model.is_calibrated:
+        return {'x': None, 'y': None}
+
+    x, y = np.array([y]), np.array([x])  # have to be swapped for pyFAI
+    tth = model.calibration_model.get_two_theta_img(x, y)
+    tth_array = model.calibration_model.get_two_theta_array()
+    tth_ind = find_contours(tth_array, tth)
+    x = [[]] * 4
+    y = [[]] * 4
+    for i in range(len(tth_ind)):
+        x[i] = ((tth_ind[i][:, 1] + 0.5).tolist())
+        y[i] = ((tth_ind[i][:, 0] + 0.5).tolist())
+    return {'x': x, 'y': y}
 
 
 def run_server(port):
