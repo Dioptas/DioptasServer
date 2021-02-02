@@ -205,14 +205,12 @@ def get_pattern_angles(tth):
 
 
 @sio.on('get_azimuthal_ring')
-def get_azimuthal_ring(x, y):
+def get_azimuthal_ring(tth):
     session = sessions[request.sid]
     model = session['model']  # type: DioptasModel
     if not model.calibration_model.is_calibrated:
         return {'x': None, 'y': None}
-
-    x, y = np.array([y]), np.array([x])  # have to be swapped for pyFAI
-    tth = model.calibration_model.get_two_theta_img(x, y)
+    tth = np.deg2rad(tth)
     tth_array = model.calibration_model.get_two_theta_array()
     tth_ind = find_contours(tth_array, tth)
     x = [[]] * 4

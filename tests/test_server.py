@@ -78,7 +78,7 @@ class ServerTests(unittest.TestCase):
     def test_get_azimuthal_ring(self):
         self.client.emit('init_model')
         self.client.emit('load_dummy')
-        result = self.client.emit('get_azimuthal_ring', 200, 300, callback=True)
+        result = self.client.emit('get_azimuthal_ring', 5, callback=True)
         self.assertNotEqual(result, [])
         self.assertGreater(len(result['x']), 0)
         self.assertGreater(len(result['y']), 0)
