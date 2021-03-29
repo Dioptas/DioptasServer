@@ -2,6 +2,7 @@ import os
 import threading
 
 import numpy as np
+from dioptas.model import OverlayModel
 from skimage.measure import find_contours
 
 from flask import Flask, request
@@ -14,7 +15,7 @@ from .image_server import run_image_server
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-sio = SocketIO(app, cors_allowed_origins="*")
+sio = SocketIO(app, cors_allowed_origins="*", async_handlers=True)
 
 path = os.path.dirname(__file__)
 data_path = os.path.join(path, '../data')
@@ -73,12 +74,16 @@ def disconnect():
 
 image_server_port = 61000
 
+from functools import partial
+
 
 @sio.on('init_model')
 def init_model():
     with get_session(request.sid) as session:
         print('init model')
         model = DioptasModel()
+        model.img_changed.connect(partial(img_changed, request.sid), priority=True)
+        model.pattern_changed.connect(partial(pattern_changed, request.sid), priority=True)
         session['model'] = model
 
         global image_server_port
@@ -92,12 +97,7 @@ def init_model():
         return image_server_port
 
 
-def dummy_function():
-    print('LDSGJASDLGAJSDGLHJASJLDHGASJLDDHGLJASJLDHJASDLHJALSJHLSAJDHLSAjhlsajhah')
-
-
 def img_changed(sid):
-    print('image changed')
     session = sessions[sid]
     model = session['model']  # type: DioptasModel
     sio.emit('img_changed', {
@@ -120,8 +120,6 @@ def load_dummy():
     with get_session(request.sid) as session:
         model = session['model']  # type: DioptasModel
         model.load(os.path.join(data_path, 'projects', 'dummy.dio'))
-        img_changed(request.sid)
-        pattern_changed(request.sid)
 
 
 @sio.on('load_dummy2')
@@ -129,8 +127,6 @@ def load_dummy2():
     with get_session(request.sid) as session:
         model = session['model']  # type: DioptasModel
         model.load(os.path.join(data_path, 'projects', 'dummy2.dio'))
-        img_changed(request.sid)
-        pattern_changed(request.sid)
 
 
 @sio.on('load_image')
@@ -138,8 +134,6 @@ def load_image(filename):
     with get_session(request.sid) as session:
         model = session['model']  # type: DioptasModel
         model.img_model.load(filename)
-        img_changed(request.sid)
-        pattern_changed(request.sid)
 
 
 @sio.on('load_next_image')
@@ -147,8 +141,6 @@ def load_next_image():
     with get_session(request.sid) as session:
         model = session['model']  # type: DioptasModel
         model.img_model.load_next_file()
-        img_changed(request.sid)
-        pattern_changed(request.sid)
 
 
 @sio.on('load_previous_image')
@@ -156,12 +148,11 @@ def load_next_image():
     with get_session(request.sid) as session:
         model = session['model']  # type: DioptasModel
         model.img_model.load_previous_file()
-        img_changed(request.sid)
-        pattern_changed(request.sid)
 
 
 @sio.on('list_dir')
 def list_dir(base_directory):
+    print('listing directory: ', base_directory)
     try:
         item_list = os.listdir(base_directory)
         folders = []
@@ -206,6 +197,12 @@ def get_pattern_angles(tth):
 
 @sio.on('get_azimuthal_ring')
 def get_azimuthal_ring(tth):
+    """
+    Calculates 1-4 segments of an azimuthal ring with a Two Theta value of tth
+    :param tth: Two-Theta in degrees
+    :return: a dictionary with a a list of x- and y- values for each segment (up to 4)
+    {'x': [seg1, seg2, ... ], 'y': [seg1, seg2,...]}
+    """
     session = sessions[request.sid]
     model = session['model']  # type: DioptasModel
     if not model.calibration_model.is_calibrated:
@@ -219,6 +216,64 @@ def get_azimuthal_ring(tth):
         x[i] = ((tth_ind[i][:, 1] + 0.5).tolist())
         y[i] = ((tth_ind[i][:, 0] + 0.5).tolist())
     return {'x': x, 'y': y}
+
+
+###################################
+# Overlay Stuff:
+##################################
+
+def connect_overlay_signals(overlay_model: OverlayModel):
+    overlay_model.overlay_added.connect(overlay_added)
+    overlay_model.overlay_changed.connect(overlay_changed)
+    overlay_model.overlay_removed.connect(overlay_removed)
+
+
+def overlay_added():
+    sio.emit('overlay_added')
+
+
+def overlay_removed(index):
+    sio.emit('overlay_removed', index)
+
+
+def overlay_changed(index):
+    sio.emit('overlay_changed', index)
+
+
+@sio.on('pattern_as_overlay')
+def pattern_as_overlay():
+    session = sessions[request.sid]
+    model = session['model']  # type: DioptasModel
+    model.overlay_model.add_overlay_pattern(model.pattern_model.pattern)
+
+
+@sio.on('get_overlay')
+def get_overlay(index):
+    session = sessions[request.sid]
+    model = session['model']  # type: DioptasModel
+    overlay = model.overlay_model.overlays[index]
+    return {
+        'name': overlay.name,
+        'x': overlay.x,
+        'y': overlay.y,
+        'offset': overlay.offset,
+        'scaling': overlay.scaling
+    }
+
+
+@sio.on('get_overlays')
+def get_overlays():
+    session = sessions[request.sid]
+    model = session['model']  # type: DioptasModel
+    result = []
+    for overlay in model.overlay_model.overlays:
+        result.append({
+            'name': overlay.name,
+            'x': overlay.x,
+            'y': overlay.y,
+            'offset': overlay.offset,
+            'scaling': overlay.scaling})
+    return result
 
 
 def run_server(port):

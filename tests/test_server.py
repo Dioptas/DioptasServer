@@ -82,3 +82,8 @@ class ServerTests(unittest.TestCase):
         self.assertNotEqual(result, [])
         self.assertGreater(len(result['x']), 0)
         self.assertGreater(len(result['y']), 0)
+
+    def test_get_overlays(self):
+        self.client.emit('init_model')
+        self.client.emit('load_dummy')
+        result = self.client.emit('get_overlays', callback=True)

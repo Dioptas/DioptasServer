@@ -17,30 +17,39 @@ if os.name == 'nt':
 PORT = 64333
 
 
+class ImageHandler(tornado.websocket.WebSocketHandler, metaclass=ABCMeta):
+    """
+    Handler that handles a websocket channel
+    """
+
+    def initialize(self, dioptas_model: DioptasModel):
+        self.dioptas_model = dioptas_model
+        self.dioptas_model.pattern_changed.connect(self.send_image, priority=True)
+
+    def __del__(self):
+        self.dioptas_model.pattern_changed.disconnect(self.send_image)
+
+    def send_image(self):
+        byte_image = convert_array_to_bytes(self.dioptas_model.img_model.img_data)
+        self.write_message(byte_image, binary=True)
+
+    def check_origin(self, origin):
+        """
+        Override the origin check if needed
+        """
+        return True
+
+    def get_compression_options(self):
+        return {
+            'compression_level': 1,
+            'mem_level': 7
+        }
+
+
 def run_image_server(port, dioptas_model: DioptasModel):
     # Create tornado application and supply URL routes
-
-    class ChannelHandler(tornado.websocket.WebSocketHandler, metaclass=ABCMeta):
-        """
-        Handler that handles a websocket channel
-        """
-
-        def on_message(self, message: object) -> object:
-            """
-            Message received on channel
-            """
-            print('receives message: ', message)
-            print('send image')
-            self.write_message(convert_array_to_bytes(dioptas_model.img_model.img_data), binary=True)
-
-        def check_origin(self, origin):
-            """
-            Override the origin check if needed
-            """
-            return True
-
     asyncio.set_event_loop(asyncio.new_event_loop())
-    app = tornado.web.Application([(r'/', ChannelHandler), ])
+    app = tornado.web.Application([(r'/', ImageHandler, dict(dioptas_model=dioptas_model)), ])
     app.listen(port)
     tornado.ioloop.IOLoop.instance().start()
 
