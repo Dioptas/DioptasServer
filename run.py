@@ -1,4 +1,4 @@
-from dioptasserver.server import start_server
+from dioptasserver import start_server
 import sys
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import io
+import asyncio
 import numpy as np
 
 
@@ -10,3 +11,7 @@ def convert_array_to_bytes(numpy_array):
 
 image = np.random.randint(0, 64000, (2048, 2048), np.uint16)
 image_bytes = convert_array_to_bytes(image)
+
+
+def run_coroutine(coroutine):
+    asyncio.run_coroutine_threadsafe(coroutine, asyncio.get_event_loop())
