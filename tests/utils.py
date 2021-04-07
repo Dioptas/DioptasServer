@@ -2,7 +2,7 @@ import time
 import threading
 import unittest
 
-from dioptasserver import start_server
+from dioptasserver import start_tornado_server
 
 import socketio
 
@@ -12,7 +12,7 @@ class TestSioServer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.server_thread = threading.Thread(target=start_server,
+        cls.server_thread = threading.Thread(target=start_tornado_server,
                                              args=(cls.port,),
                                              daemon=True)
         cls.server_thread.start()

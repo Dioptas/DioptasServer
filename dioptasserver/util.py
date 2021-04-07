@@ -1,6 +1,7 @@
 import io
 import asyncio
 import numpy as np
+from asyncio.coroutines import iscoroutine
 
 
 def convert_array_to_bytes(numpy_array):
@@ -14,4 +15,5 @@ image_bytes = convert_array_to_bytes(image)
 
 
 def run_coroutine(coroutine):
-    asyncio.run_coroutine_threadsafe(coroutine, asyncio.get_event_loop())
+    if iscoroutine(coroutine):
+        asyncio.run_coroutine_threadsafe(coroutine, asyncio.get_event_loop())
