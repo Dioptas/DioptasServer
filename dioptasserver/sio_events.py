@@ -40,7 +40,8 @@ def connect_events(sio, session_manager):
         byte_image = convert_array_to_bytes(model.img_model.img_data)
         run_coroutine(
             sio.emit('img_changed', {
-                'filename': os.path.relpath(model.img_model.filename, os.getcwd()).replace('\\', '/'),
+               # 'filename': os.path.relpath(model.img_model.filename, os.getcwd()).replace('\\', '/'),
+                'filename': model.img_model.filename.replace('\\', '/'),
                 'image': byte_image
             })
         )
