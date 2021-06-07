@@ -32,6 +32,7 @@ def connect_events(sio, session_manager):
             model = DioptasModel()
             model.img_changed.connect(partial(img_changed, sid), priority=True)
             model.pattern_changed.connect(partial(pattern_changed, sid))
+            connect_overlay_signals(sid, model.overlay_model)
             session['model'] = model
 
     def img_changed(sid):
@@ -156,25 +157,69 @@ def connect_events(sio, session_manager):
     # Overlay Stuff:
     ##################################
 
-    def connect_overlay_signals(overlay_model: OverlayModel):
-        overlay_model.overlay_added.connect(overlay_added)
-        overlay_model.overlay_changed.connect(overlay_changed)
+    def connect_overlay_signals(sid, overlay_model: OverlayModel):
+        overlay_model.overlay_added.connect(partial(overlay_added, sid))
+        overlay_model.overlay_changed.connect(partial(overlay_changed, sid))
         overlay_model.overlay_removed.connect(overlay_removed)
 
-    def overlay_added():
-        sio.emit('overlay_added')
+    def overlay_added(sid):
+        session = session_manager.sessions[sid]
+        model = session['model']  # type: DioptasModel
+        overlay = model.overlay_model.overlays[-1]
+        result = {
+            'name': overlay.name,
+            'x': overlay.x.tolist(),
+            'y': overlay.y.tolist(),
+            'offset': float(overlay.offset),
+            'scaling': float(overlay.scaling)
+        }
+        run_coroutine(sio.emit('overlay_added', result))
+
+    def overlay_changed(sid, index):
+        session = session_manager.sessions[sid]
+        model = session['model']  # type: DioptasModel
+        overlay = model.overlay_model.overlays[index]
+        result = {
+            'name': overlay.name,
+            'x': overlay.x.tolist(),
+            'y': overlay.y.tolist(),
+            'offset': float(overlay.offset),
+            'scaling': float(overlay.scaling)
+        }
+        run_coroutine(sio.emit('overlay_changed',
+                               {
+                                   'index': index,
+                                   'overlay': result
+                               }))
 
     def overlay_removed(index):
-        sio.emit('overlay_removed', index)
-
-    def overlay_changed(index):
-        sio.emit('overlay_changed', index)
+        run_coroutine(sio.emit('overlay_removed', index))
 
     @sio.on('pattern_as_overlay')
     def pattern_as_overlay(sid):
         session = session_manager.sessions[sid]
         model = session['model']  # type: DioptasModel
         model.overlay_model.add_overlay_pattern(model.pattern_model.pattern)
+
+    @sio.on('clear_overlays')
+    def clear_overlays(sid):
+        session = session_manager.sessions[sid]
+        model = session['model']  # type: DioptasModel
+        model.overlay_model.reset()
+
+    @sio.on('set_overlay_scaling')
+    def set_overlay_scaling(sid, payload):
+        print('set overlay scaling', payload)
+        session = session_manager.sessions[sid]
+        model = session['model']  # type: DioptasModel
+        model.overlay_model.set_overlay_scaling(int(payload['ind']), float(payload['scaling']))
+
+    @sio.on('set_overlay_offset')
+    def set_overlay_offset(sid, payload):
+        print('set overlay offset', payload)
+        session = session_manager.sessions[sid]
+        model = session['model']  # type: DioptasModel
+        model.overlay_model.set_overlay_offset(int(payload['ind']), float(payload['offset']))
 
     @sio.on('get_overlay')
     def get_overlay(sid, index):
@@ -183,10 +228,10 @@ def connect_events(sio, session_manager):
         overlay = model.overlay_model.overlays[index]
         return {
             'name': overlay.name,
-            'x': overlay.x,
-            'y': overlay.y,
-            'offset': overlay.offset,
-            'scaling': overlay.scaling
+            'x': overlay.x.tolist(),
+            'y': overlay.y.tolist(),
+            'offset': float(overlay.offset),
+            'scaling': float(overlay.scaling)
         }
 
     @sio.on('get_overlays')
@@ -197,8 +242,8 @@ def connect_events(sio, session_manager):
         for overlay in model.overlay_model.overlays:
             result.append({
                 'name': overlay.name,
-                'x': overlay.x,
-                'y': overlay.y,
-                'offset': overlay.offset,
-                'scaling': overlay.scaling})
+                'x': overlay.x.tolist(),
+                'y': overlay.y.tolist(),
+                'offset': float(overlay.offset),
+                'scaling': float(overlay.scaling)})
         return result
